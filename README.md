@@ -35,12 +35,16 @@ In Obsidian: Settings → Community plugins → Browse → search "TubeZen" → 
 
 ## Setup
 
-![Settings tab with a successful Test connection result](docs/img/settings.png)
-
 1. Open Settings → TubeZen.
 2. In your [TubeZen dashboard](https://tubezen.ai), open the API Tokens page, generate a new token, copy it.
+
+   ![Generating an API token in the TubeZen dashboard](docs/img/create-api-token.png)
+
 3. Paste the token into the **API token** field.
 4. Click **Run test** under "Test connection". You should see your account info and `Obsidian export: enabled`.
+
+   ![Settings tab with a successful Test connection result](docs/img/settings.png)
+
 5. Pick a folder organization, filename template, and sync interval.
 6. Open the command palette (Cmd/Ctrl + P) and run **TubeZen: Sync now**.
 
