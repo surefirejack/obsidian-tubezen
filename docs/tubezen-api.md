@@ -12,7 +12,7 @@ This document is the reference the plugin builds against. The backend that serve
 
 ## Scope
 
-Only interactions with `review_status = 'saved'` are exportable. Users mark videos to export through the existing TubeZen save flow — the plugin does not toggle save state.
+Only interactions with `review_status = 'saved'` are exportable. Users mark items to export through the existing TubeZen save flow — the plugin does not toggle save state. Both YouTube videos and podcast episodes are exportable.
 
 ## Pro gating
 
@@ -29,55 +29,72 @@ Response includes:
 - `features.obsidian_export: bool`
 - `subscription.{status, plan_slug, product_slug, ends_at}`
 
-### `GET /exports/saved?cursor=&limit=`
+### `GET /exports/saved?type=video|podcast&cursor=&limit=`
 
-Cursor-paginated list of saved exports.
+Cursor-paginated list of saved exports for a single content type.
 
+- `type` is required-by-convention from the plugin (backend defaults to `video` if omitted). Invalid values return `400 {error: 'invalid_type'}`.
 - Default `limit`: 50. Max: 100.
 - Ordering: `(updated_at asc, id asc)` — re-saves bubble back to the top of the cursor stream so the plugin can idempotently skip items it already has.
 - Response shape: standard Laravel resource collection wrapped in `{data: [...], links: {...}, meta: {next_cursor, prev_cursor, ...}}`, plus top-level `version: 1`.
 
-### `GET /exports/{interaction_id}`
+**Sync model:** the plugin runs two independent passes per cycle — one `?type=video`, one `?type=podcast` — each with its own cursor persisted in plugin data. The `tubezen_id` prefix (`tvi_` vs `tpe_`) ensures dedup keys never collide across types.
 
-Single export by interaction id. Returns `404` if the interaction is the wrong tenant, not saved, or the summary is incomplete.
+### `GET /exports/{tubezen_id}`
+
+Single export by `tubezen_id`. The id is the full prefixed string (`tvi_165`, `tpe_42`). Route regex enforces `^t(vi|pe)_\d+$` — malformed ids `404` (not `400`) because Laravel rejects them at routing.
+
+Returns `404 {error: 'not_found' | 'not_exportable'}` if the item is wrong tenant, not saved, or in a non-exportable state.
 
 ## Export DTO
 
-Every item in `data[]` (list endpoint) and the single show endpoint conforms to:
+Polymorphic on `content_type`. Every export has the same keys; type-specific fields are nulled when N/A.
 
 ```jsonc
 {
   "version": 1,
-  "tubezen_id": "tvi_{interaction_id}",   // stable key for plugin dedup
+  "content_type": "youtube" | "podcast",
+  "tubezen_id": "tvi_{n}" | "tpe_{n}",    // stable key for plugin dedup AND show endpoint
   "title": "…",
-  "youtube_video_id": "…",
-  "youtube_url": "…",
-  "channel_title": "…",
-  "channel_url": "…",                     // uses @handle if custom_url present
+
+  // YouTube-only (null for podcasts):
+  "youtube_video_id": "…" | null,
+  "youtube_url": "…" | null,
+
+  // Podcast-only (null for videos):
+  "taddy_uuid": "…" | null,
+  "audio_url": "…" | null,
+  "season_number": 0 | null,
+  "episode_number": 0 | null,
+
+  // Shared:
+  "channel_title": "…",                   // podcast series name for podcasts
+  "channel_url": "…",                     // uses @handle if custom_url present (YouTube)
   "thumbnail_url": "…",
   "published_at": "…",                    // ISO 8601
   "summarized_at": "…",                   // ISO 8601
   "duration_seconds": 0,
-  "tags": ["…"],                          // merged video + interaction tags
-  "saved_tag": "…",                       // user-designated primary tag from triage; null if none
+  "saved_tag": "…" | null,                // user-designated PRIMARY tag from triage
+  "tags": ["…"],                          // all other tags
   "summary_markdown": "…",                // raw summary body — render under ## Summary
   "key_takeaways": null,                  // RESERVED — Phase 4 backend will populate
   "tubezen_url": null                     // RESERVED — needs tenant-uuid-aware route
 }
 ```
 
-`tubezen_id` is the dedup key. The plugin checks Obsidian's metadata cache for a matching `tubezen_id` in frontmatter and skips if it already exists.
+The `tubezen_id` prefix is load-bearing: it is both the dedup key AND the URL key for the show endpoint. Plugin reads it from frontmatter and passes it through as-is, no parsing.
 
-`key_takeaways` and `tubezen_url` are reserved nulls today — they will be populated in a later backend phase. The plugin should tolerate them being `null` and render whatever shape they ship with later without breaking.
+`key_takeaways` and `tubezen_url` are reserved nulls today — they will be populated in a later backend phase. The plugin tolerates them being `null` and should render whatever shape they ship with later without breaking.
 
 ## Errors
 
 | Status | Body | What it means | Plugin behavior |
 | --- | --- | --- | --- |
+| `400` | `{error: 'invalid_type'}` | List endpoint received an unrecognized `type` value | Plugin controls the value, so should not occur in practice; surface generic error |
 | `401` | `Unauthenticated` | Token invalid or revoked | Surface "Re-authenticate" UI |
 | `403` | `Token is not associated with a tenant.` | Token missing `tenant:{id}` ability | Same — token needs to be regenerated |
 | `402` | `{error: 'feature_inactive', feature: 'obsidian_export_enabled', upgrade_url}` | Pro lapsed or never enabled | Surface upgrade button using `upgrade_url` |
-| `404` | `{error: 'not_found' \| 'not_exportable'}` | Show endpoint: wrong tenant or video state | Treat as no-op; don't retry |
+| `404` | `{error: 'not_found' \| 'not_exportable'}` | Show endpoint: wrong tenant or item state; also any malformed `tubezen_id` that fails the route regex | Treat as no-op; don't retry |
 
 ## Backend file pointers
 

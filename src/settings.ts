@@ -26,8 +26,11 @@ export interface TubeZenSettings {
 	tagPrefix: string;
 	attribution: boolean;
 	syncInterval: SyncInterval;
+	syncVideos: boolean;
+	syncPodcasts: boolean;
 	showAdvanced: boolean;
-	cursor: string | null;
+	videoCursor: string | null;
+	podcastCursor: string | null;
 }
 
 export const DEFAULT_SETTINGS: TubeZenSettings = {
@@ -39,9 +42,27 @@ export const DEFAULT_SETTINGS: TubeZenSettings = {
 	tagPrefix: "",
 	attribution: true,
 	syncInterval: "off",
+	syncVideos: true,
+	syncPodcasts: true,
 	showAdvanced: false,
-	cursor: null,
+	videoCursor: null,
+	podcastCursor: null,
 };
+
+export function migrateSettings(
+	raw: Record<string, unknown>,
+): { data: Record<string, unknown>; didMigrate: boolean } {
+	let didMigrate = false;
+	if (typeof raw.cursor === "string" && raw.videoCursor == null) {
+		raw.videoCursor = raw.cursor;
+		didMigrate = true;
+	}
+	if ("cursor" in raw) {
+		delete raw.cursor;
+		didMigrate = true;
+	}
+	return { data: raw, didMigrate };
+}
 
 const FOLDER_STRUCTURE_OPTIONS: Record<FolderStructure, string> = {
 	flat: "Flat",
@@ -109,6 +130,30 @@ export class TubeZenSettingTab extends PluginSettingTab {
 		);
 
 		new Setting(containerEl).setName("Sync").setHeading();
+
+		new Setting(containerEl)
+			.setName("Sync videos")
+			.setDesc("Include YouTube video summaries in sync.")
+			.addToggle((t) =>
+				t
+					.setValue(this.plugin.settings.syncVideos)
+					.onChange(async (value) => {
+						this.plugin.settings.syncVideos = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Sync podcasts")
+			.setDesc("Include podcast episode summaries in sync.")
+			.addToggle((t) =>
+				t
+					.setValue(this.plugin.settings.syncPodcasts)
+					.onChange(async (value) => {
+						this.plugin.settings.syncPodcasts = value;
+						await this.plugin.saveSettings();
+					}),
+			);
 
 		new Setting(containerEl)
 			.setName("Sync folder")
@@ -223,15 +268,16 @@ export class TubeZenSettingTab extends PluginSettingTab {
 				);
 
 			new Setting(containerEl)
-				.setName("Reset sync cursor")
+				.setName("Reset sync cursors")
 				.setDesc(
-					"Clears the saved pagination cursor so the next sync scans from the start of your saved exports. To fully re-import after a backend change, also delete the existing notes from your vault before syncing.",
+					"Clears the saved pagination cursors for both videos and podcasts so the next sync scans from the start of each stream. To fully re-import after a backend change, also delete the existing notes from your vault before syncing.",
 				)
 				.addButton((btn) =>
 					btn.setButtonText("Reset").onClick(async () => {
-						this.plugin.settings.cursor = null;
+						this.plugin.settings.videoCursor = null;
+						this.plugin.settings.podcastCursor = null;
 						await this.plugin.saveSettings();
-						new Notice("TubeZen: sync cursor reset.");
+						new Notice("TubeZen: sync cursors reset.");
 					}),
 				);
 		}

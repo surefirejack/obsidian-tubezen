@@ -2,6 +2,7 @@ import { App, Notice } from "obsidian";
 import type TubeZenPlugin from "../main";
 import {
 	formatApiError,
+	SyncType,
 	TubeZenApiError,
 	TubeZenClient,
 } from "../api/client";
@@ -29,6 +30,13 @@ export class SyncEngine {
 		if (!settings.apiToken) {
 			if (opts.source === "manual") {
 				new Notice("TubeZen: enter an API token in settings first.");
+			}
+			return;
+		}
+
+		if (!settings.syncVideos && !settings.syncPodcasts) {
+			if (opts.source === "manual") {
+				new Notice("TubeZen: enable a sync type in settings.");
 			}
 			return;
 		}
@@ -61,12 +69,50 @@ export class SyncEngine {
 		const client = new TubeZenClient(settings.baseUrl, settings.apiToken);
 		const seen = buildTubezenIndex(plugin.app);
 
-		let cursor: string | null = settings.cursor ?? null;
+		let created = 0;
+		let skipped = 0;
+		let deferredError: unknown = null;
+
+		if (settings.syncVideos) {
+			try {
+				const result = await this.walkType(client, seen, "video");
+				created += result.created;
+				skipped += result.skipped;
+			} catch (err) {
+				if (isFatalError(err)) throw err;
+				deferredError = err;
+			}
+		}
+
+		if (settings.syncPodcasts) {
+			try {
+				const result = await this.walkType(client, seen, "podcast");
+				created += result.created;
+				skipped += result.skipped;
+			} catch (err) {
+				throw err;
+			}
+		}
+
+		if (deferredError) throw deferredError;
+
+		return { created, skipped };
+	}
+
+	private async walkType(
+		client: TubeZenClient,
+		seen: Set<string>,
+		type: SyncType,
+	): Promise<SyncSummary> {
+		const { plugin } = this;
+		const { settings } = plugin;
+		const cursorKey = type === "video" ? "videoCursor" : "podcastCursor";
+		let cursor: string | null = settings[cursorKey];
 		let created = 0;
 		let skipped = 0;
 
 		while (true) {
-			const page = await client.listSaved({ cursor, limit: 50 });
+			const page = await client.listSaved({ type, cursor, limit: 50 });
 
 			for (const dto of page.data) {
 				if (seen.has(dto.tubezen_id)) {
@@ -82,7 +128,7 @@ export class SyncEngine {
 			if (!next) break;
 
 			cursor = next;
-			settings.cursor = cursor;
+			settings[cursorKey] = cursor;
 			await plugin.saveSettings();
 		}
 
@@ -106,6 +152,15 @@ export class SyncEngine {
 			new Notice("TubeZen sync failed. See developer console.", 8000);
 		}
 	}
+}
+
+function isFatalError(err: unknown): boolean {
+	if (!(err instanceof TubeZenApiError)) return false;
+	return (
+		err.code === "unauthenticated" ||
+		err.code === "forbidden" ||
+		err.code === "feature_inactive"
+	);
 }
 
 function buildTubezenIndex(app: App): Set<string> {

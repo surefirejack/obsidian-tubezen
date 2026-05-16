@@ -1,14 +1,14 @@
 # TubeZen for Obsidian
 
-Import YouTube summaries from [TubeZen](https://tubezen.ai) into your Obsidian vault. Each saved video becomes a note with full frontmatter, a callout header, and the summary body — ready to link, tag, and reference like any other note.
+Import YouTube and podcast summaries from [TubeZen](https://tubezen.ai) into your Obsidian vault. Each saved item becomes a note with full frontmatter, a callout header, and the summary body — ready to link, tag, and reference like any other note.
 
 ![A synced TubeZen note](docs/img/synced-note.png)
 
 ## Features
 
-- **One-way sync** of TubeZen summaries you've explicitly marked as saved for export.
+- **One-way sync** of YouTube and podcast summaries you've explicitly marked as saved for export.
 - **Idempotent** — re-running sync only fetches new items; existing notes are left alone unless explicitly re-imported.
-- **Cursor-based pagination** with automatic resume across syncs.
+- **Independent cursors per content type** — videos and podcasts sync in separate passes with their own pagination state.
 - **Four folder organizations**: flat, by channel, by date, or by saved category tag.
 - **Three filename templates**: title, date + title, channel + title.
 - **Background sync** at 15-minute / 1-hour / 6-hour intervals, or fully manual.
@@ -54,6 +54,8 @@ In Obsidian: Settings → Community plugins → Browse → search "TubeZen" → 
 |---|---|
 | **API token** | Bearer token from your TubeZen dashboard. Stored locally in the plugin's data file. |
 | **Test connection** | Calls `/me` and reports your user, workspace, plan, and whether Obsidian export is active. |
+| **Sync videos** | Include YouTube video summaries in sync. On by default. |
+| **Sync podcasts** | Include podcast episode summaries in sync. On by default. |
 | **Sync folder** | Vault folder where summaries are written. Default `TubeZen`. |
 | **Folder structure** | `Flat` / `By channel` / `By date (year/month)` / `By tag`. "By tag" uses your saved category, with `_uncategorized/` as the fallback for untagged items. |
 | **Filename template** | `{title}` / `{published_date} - {title}` / `{channel} - {title}`. |
@@ -66,7 +68,7 @@ In Obsidian: Settings → Community plugins → Browse → search "TubeZen" → 
 | Setting | What it does |
 |---|---|
 | **API base URL** | Defaults to `https://tubezen.ai/api/v1`. Change only for self-hosted or staging environments. |
-| **Reset sync cursor** | Clears the saved pagination cursor so the next sync scans your saved exports from the beginning. To fully re-import after a backend change, also delete the existing notes from your vault before syncing. |
+| **Reset sync cursors** | Clears the saved pagination cursors for both videos and podcasts so the next sync scans each stream from the beginning. To fully re-import after a backend change, also delete the existing notes from your vault before syncing. |
 
 ## Commands
 
@@ -82,14 +84,21 @@ In Obsidian: Settings → Community plugins → Browse → search "TubeZen" → 
 
 ## Note format
 
-Each synced note looks like this:
+All notes share the same YAML frontmatter shape — type-specific fields are populated for the matching content type and `null` otherwise — which keeps Dataview queries simple.
+
+### YouTube video note
 
 ````markdown
 ---
 tubezen_id: "tvi_42"
+content_type: "youtube"
 title: "How to Build a Plugin"
 youtube_video_id: "abc123"
 youtube_url: "https://youtube.com/watch?v=abc123"
+taddy_uuid: null
+audio_url: null
+season_number: null
+episode_number: null
 channel_title: "Fireship"
 channel_url: "https://youtube.com/@fireship"
 thumbnail_url: "https://i.ytimg.com/vi/abc123/hqdefault.jpg"
@@ -119,7 +128,50 @@ tags:
 *Imported from [TubeZen](https://tubezen.ai) on 2026-05-16.*
 ````
 
-The `tubezen_id` frontmatter field is the dedup anchor. On every sync the plugin scans the vault for existing notes carrying this id and skips anything already imported.
+### Podcast episode note
+
+````markdown
+---
+tubezen_id: "tpe_17"
+content_type: "podcast"
+title: "Why Distributed Systems Are Hard"
+youtube_video_id: null
+youtube_url: null
+taddy_uuid: "abc-123-uuid"
+audio_url: "https://example.com/episodes/17.mp3"
+season_number: 2
+episode_number: 14
+channel_title: "Software Engineering Daily"
+channel_url: "https://softwareengineeringdaily.com"
+thumbnail_url: "https://example.com/podcast-art.jpg"
+published_at: "2026-05-03T09:00:00Z"
+summarized_at: "2026-05-12T11:15:00Z"
+duration_seconds: 2820
+category: "Systems"
+tags:
+  - "distributed-systems"
+  - "interview"
+---
+
+> [!info] Why Distributed Systems Are Hard
+> ![](https://example.com/podcast-art.jpg)
+>
+> **Channel:** [[Software Engineering Daily]]
+> **Published:** 2026-05-03
+> **Duration:** 47m
+> **Season 2 · Episode 14**
+> **Listen:** [Audio](https://example.com/episodes/17.mp3)
+
+## Summary
+
+<summary content from TubeZen>
+
+---
+
+*Imported from [TubeZen](https://tubezen.ai) on 2026-05-16.*
+````
+
+The `tubezen_id` frontmatter field is the dedup anchor — `tvi_…` for YouTube and `tpe_…` for podcasts, never collide. On every sync the plugin scans the vault for existing notes carrying this id and skips anything already imported.
 
 ## Privacy & data handling
 
@@ -134,8 +186,8 @@ The plugin uses Obsidian's `requestUrl` API (mobile-safe) and hits only these en
 | Method | Endpoint | When |
 |---|---|---|
 | `GET` | `/api/v1/me` | When you click "Test connection" |
-| `GET` | `/api/v1/exports/saved?cursor=…&limit=50` | Every sync, paginated until the stream ends |
-| `GET` | `/api/v1/exports/{interaction_id}` | When you run "Re-import this summary" |
+| `GET` | `/api/v1/exports/saved?type=video&cursor=…&limit=50` | Every sync, once for `type=video` and once for `type=podcast` based on your enabled sync types, paginated until each stream ends |
+| `GET` | `/api/v1/exports/{tubezen_id}` | When you run "Re-import this summary"; `tubezen_id` is the full prefixed string from frontmatter (`tvi_…` or `tpe_…`) |
 
 All requests include `Authorization: Bearer <your-token>`.
 

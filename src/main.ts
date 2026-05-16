@@ -1,6 +1,7 @@
 import { Plugin } from "obsidian";
 import {
 	DEFAULT_SETTINGS,
+	migrateSettings,
 	SyncInterval,
 	TubeZenSettings,
 	TubeZenSettingTab,
@@ -26,11 +27,14 @@ export default class TubeZenPlugin extends Plugin {
 	}
 
 	async loadSettings() {
+		const raw = ((await this.loadData()) ?? {}) as Record<string, unknown>;
+		const { data, didMigrate } = migrateSettings(raw);
 		this.settings = Object.assign(
 			{},
 			DEFAULT_SETTINGS,
-			await this.loadData(),
-		);
+			data,
+		) as TubeZenSettings;
+		if (didMigrate) await this.saveSettings();
 	}
 
 	async saveSettings() {

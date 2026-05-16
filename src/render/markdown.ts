@@ -1,4 +1,4 @@
-import type { ExportDTO } from "../api/client";
+import type { ExportDTO, PodcastExportDTO } from "../api/client";
 import type { TubeZenSettings } from "../settings";
 
 export function renderNote(
@@ -23,9 +23,14 @@ function buildFrontmatter(
 	);
 	const lines: string[] = ["---"];
 	lines.push(yamlScalar("tubezen_id", dto.tubezen_id));
+	lines.push(yamlScalar("content_type", dto.content_type));
 	lines.push(yamlScalar("title", dto.title));
 	lines.push(yamlScalar("youtube_video_id", dto.youtube_video_id));
 	lines.push(yamlScalar("youtube_url", dto.youtube_url));
+	lines.push(yamlScalar("taddy_uuid", dto.taddy_uuid));
+	lines.push(yamlScalar("audio_url", dto.audio_url));
+	lines.push(yamlNumberOrNull("season_number", dto.season_number));
+	lines.push(yamlNumberOrNull("episode_number", dto.episode_number));
 	lines.push(yamlScalar("channel_title", dto.channel_title));
 	lines.push(yamlScalar("channel_url", dto.channel_url));
 	lines.push(yamlScalar("thumbnail_url", dto.thumbnail_url));
@@ -54,8 +59,27 @@ function buildCallout(dto: ExportDTO): string {
 	if (dto.duration_seconds > 0) {
 		lines.push(`> **Duration:** ${formatDuration(dto.duration_seconds)}`);
 	}
-	lines.push(`> **Watch:** [YouTube](${dto.youtube_url})`);
+
+	if (dto.content_type === "podcast") {
+		const seasonEp = formatSeasonEpisode(dto);
+		if (seasonEp) lines.push(`> **${seasonEp}**`);
+		if (dto.audio_url) {
+			lines.push(`> **Listen:** [Audio](${dto.audio_url})`);
+		}
+	} else {
+		if (dto.youtube_url) {
+			lines.push(`> **Watch:** [YouTube](${dto.youtube_url})`);
+		}
+	}
+
 	return lines.join("\n");
+}
+
+function formatSeasonEpisode(dto: PodcastExportDTO): string | null {
+	const parts: string[] = [];
+	if (dto.season_number != null) parts.push(`Season ${dto.season_number}`);
+	if (dto.episode_number != null) parts.push(`Episode ${dto.episode_number}`);
+	return parts.length ? parts.join(" · ") : null;
 }
 
 function buildSummary(dto: ExportDTO): string {
@@ -75,6 +99,11 @@ function prefixTag(tag: string, prefix: string): string {
 function yamlScalar(key: string, value: string | null | undefined): string {
 	if (value == null) return `${key}: null`;
 	return `${key}: ${yamlString(value)}`;
+}
+
+function yamlNumberOrNull(key: string, value: number | null): string {
+	if (value == null) return `${key}: null`;
+	return `${key}: ${value}`;
 }
 
 function yamlList(key: string, items: string[]): string {

@@ -19,26 +19,49 @@ export interface MeResponse {
 	features?: Record<string, boolean>;
 }
 
-export interface ExportDTO {
+interface BaseExportDTO {
 	version: 1;
 	tubezen_id: string;
 	title: string;
-	youtube_video_id: string;
-	youtube_url: string;
 	channel_title: string;
 	channel_url: string;
 	thumbnail_url: string;
 	published_at: string;
 	summarized_at: string;
 	duration_seconds: number;
-	tags: string[];
 	saved_tag: string | null;
+	tags: string[];
 	summary_markdown: string;
 	key_takeaways: unknown | null;
 	tubezen_url: string | null;
 }
 
+export interface YouTubeExportDTO extends BaseExportDTO {
+	content_type: "youtube";
+	youtube_video_id: string;
+	youtube_url: string;
+	taddy_uuid: null;
+	audio_url: null;
+	season_number: null;
+	episode_number: null;
+}
+
+export interface PodcastExportDTO extends BaseExportDTO {
+	content_type: "podcast";
+	youtube_video_id: null;
+	youtube_url: null;
+	taddy_uuid: string | null;
+	audio_url: string | null;
+	season_number: number | null;
+	episode_number: number | null;
+}
+
+export type ExportDTO = YouTubeExportDTO | PodcastExportDTO;
+
+export type SyncType = "video" | "podcast";
+
 export interface ListSavedParams {
+	type: SyncType;
 	cursor?: string | null;
 	limit?: number;
 }
@@ -66,6 +89,7 @@ export type ApiErrorCode =
 	| "feature_inactive"
 	| "not_found"
 	| "not_exportable"
+	| "invalid_type"
 	| "http_error";
 
 export class TubeZenApiError extends Error {
@@ -90,8 +114,8 @@ export class TubeZenClient {
 		return this.request<MeResponse>("GET", "/me");
 	}
 
-	async listSaved(params: ListSavedParams = {}): Promise<ListSavedResponse> {
-		const query: Record<string, string> = {};
+	async listSaved(params: ListSavedParams): Promise<ListSavedResponse> {
+		const query: Record<string, string> = { type: params.type };
 		if (params.cursor) query.cursor = params.cursor;
 		if (params.limit != null) query.limit = String(params.limit);
 		return this.request<ListSavedResponse>(
@@ -101,13 +125,10 @@ export class TubeZenClient {
 		);
 	}
 
-	async getExport(idOrTubezenId: string): Promise<ExportDTO> {
-		const interactionId = idOrTubezenId.startsWith("tvi_")
-			? idOrTubezenId.slice(4)
-			: idOrTubezenId;
+	async getExport(tubezenId: string): Promise<ExportDTO> {
 		const response = await this.request<{ data: ExportDTO }>(
 			"GET",
-			`/exports/${encodeURIComponent(interactionId)}`,
+			`/exports/${encodeURIComponent(tubezenId)}`,
 		);
 		return response.data;
 	}
@@ -148,6 +169,23 @@ export class TubeZenClient {
 		}
 
 		switch (response.status) {
+			case 400: {
+				const errCode = (body as { error?: string } | undefined)?.error;
+				if (errCode === "invalid_type") {
+					throw new TubeZenApiError(
+						400,
+						"invalid_type",
+						"Backend rejected the sync type parameter.",
+						body,
+					);
+				}
+				throw new TubeZenApiError(
+					400,
+					"http_error",
+					"Bad request.",
+					body,
+				);
+			}
 			case 401:
 				throw new TubeZenApiError(
 					401,
@@ -213,9 +251,11 @@ export function formatApiError(err: TubeZenApiError): string {
 				: "Pro feature not enabled on this account.";
 		}
 		case "not_found":
-			return "This video isn't available — it may have been removed from your TubeZen account.";
+			return "This item isn't available — it may have been removed from your TubeZen account.";
 		case "not_exportable":
-			return "This video is not in an exportable state.";
+			return "This item is not in an exportable state.";
+		case "invalid_type":
+			return "Backend rejected the sync type parameter. Please file an issue.";
 		case "network":
 			return `Network error: ${err.message}`;
 		default:

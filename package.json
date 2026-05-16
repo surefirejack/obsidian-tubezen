@@ -1,7 +1,7 @@
 {
 	"name": "obsidian-tubezen",
-	"version": "0.1.0",
-	"description": "Import YouTube summaries from TubeZen into your Obsidian vault.",
+	"version": "0.2.0",
+	"description": "Import YouTube and podcast summaries from TubeZen into your Obsidian vault.",
 	"main": "main.js",
 	"scripts": {
 		"dev": "node esbuild.config.mjs",
