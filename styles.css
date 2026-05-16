@@ -1,1 +1,27 @@
-/* TubeZen plugin styles */
+.tubezen-status {
+	margin: 0.25em 0 1em;
+	padding: 0.6em 0.8em;
+	border-radius: 4px;
+	font-size: var(--font-ui-small);
+	line-height: 1.4;
+	background: var(--background-secondary);
+	border-left: 3px solid var(--background-modifier-border);
+	color: var(--text-normal);
+}
+
+.tubezen-status:empty {
+	display: none;
+}
+
+.tubezen-status > div + div {
+	margin-top: 0.2em;
+}
+
+.tubezen-status-success {
+	border-left-color: var(--text-success);
+}
+
+.tubezen-status-error {
+	border-left-color: var(--text-error);
+	color: var(--text-error);
+}
