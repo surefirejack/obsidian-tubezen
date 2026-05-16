@@ -32,6 +32,7 @@ function buildFrontmatter(
 	lines.push(yamlScalar("published_at", dto.published_at));
 	lines.push(yamlScalar("summarized_at", dto.summarized_at));
 	lines.push(`duration_seconds: ${dto.duration_seconds}`);
+	lines.push(yamlScalar("category", dto.saved_tag));
 	lines.push(yamlList("tags", tags));
 	lines.push("---");
 	return lines.join("\n");

@@ -38,6 +38,13 @@ function resolveFolder(
 			const [year, month] = ym.split("-");
 			return normalizePath(`${root}/${year}/${month}`);
 		}
+		case "by-tag": {
+			const tag = dto.saved_tag?.trim();
+			const segment = tag
+				? sanitizePathSegment(tag)
+				: "_uncategorized";
+			return normalizePath(`${root}/${segment}`);
+		}
 	}
 }
 

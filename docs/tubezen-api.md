@@ -59,6 +59,7 @@ Every item in `data[]` (list endpoint) and the single show endpoint conforms to:
   "summarized_at": "…",                   // ISO 8601
   "duration_seconds": 0,
   "tags": ["…"],                          // merged video + interaction tags
+  "saved_tag": "…",                       // user-designated primary tag from triage; null if none
   "summary_markdown": "…",                // raw summary body — render under ## Summary
   "key_takeaways": null,                  // RESERVED — Phase 4 backend will populate
   "tubezen_url": null                     // RESERVED — needs tenant-uuid-aware route

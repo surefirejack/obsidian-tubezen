@@ -32,6 +32,7 @@ export interface ExportDTO {
 	summarized_at: string;
 	duration_seconds: number;
 	tags: string[];
+	saved_tag: string | null;
 	summary_markdown: string;
 	key_takeaways: unknown | null;
 	tubezen_url: string | null;
