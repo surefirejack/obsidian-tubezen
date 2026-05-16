@@ -5,7 +5,12 @@ import {
 	Setting,
 } from "obsidian";
 import type TubeZenPlugin from "./main";
-import { MeResponse, TubeZenApiError, TubeZenClient } from "./api/client";
+import {
+	formatApiError,
+	MeResponse,
+	TubeZenApiError,
+	TubeZenClient,
+} from "./api/client";
 
 export type FolderStructure = "flat" | "by-channel" | "by-date";
 export type FilenameTemplate = "title" | "date-title" | "channel-title";
@@ -287,15 +292,3 @@ function renderMeResult(el: HTMLElement, me: MeResponse): void {
 	}
 }
 
-function formatApiError(err: TubeZenApiError): string {
-	switch (err.status) {
-		case 401:
-			return "Authentication failed — token is invalid or revoked. Generate a new one in your TubeZen dashboard.";
-		case 403:
-			return "Forbidden — this token is not associated with a tenant. Regenerate it from the API Tokens page.";
-		case 0:
-			return `Network error: ${err.message}`;
-		default:
-			return `Error ${err.status}: ${err.message}`;
-	}
-}

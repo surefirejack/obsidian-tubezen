@@ -198,3 +198,26 @@ function safeJson(response: RequestUrlResponse): unknown {
 		return undefined;
 	}
 }
+
+export function formatApiError(err: TubeZenApiError): string {
+	switch (err.code) {
+		case "unauthenticated":
+			return "Token is invalid or revoked. Generate a new one in your TubeZen dashboard.";
+		case "forbidden":
+			return "Token is not associated with a tenant. Regenerate it from the API Tokens page.";
+		case "feature_inactive": {
+			const body = err.body as { upgrade_url?: string } | undefined;
+			return body?.upgrade_url
+				? `Pro feature not enabled. Upgrade: ${body.upgrade_url}`
+				: "Pro feature not enabled on this account.";
+		}
+		case "not_found":
+			return "This video isn't available — it may have been removed from your TubeZen account.";
+		case "not_exportable":
+			return "This video is not in an exportable state.";
+		case "network":
+			return `Network error: ${err.message}`;
+		default:
+			return `Error ${err.status}: ${err.message}`;
+	}
+}

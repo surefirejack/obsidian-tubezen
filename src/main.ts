@@ -6,6 +6,7 @@ import {
 	TubeZenSettingTab,
 } from "./settings";
 import { SyncEngine } from "./sync/engine";
+import { registerCommands } from "./commands";
 
 export default class TubeZenPlugin extends Plugin {
 	settings!: TubeZenSettings;
@@ -16,15 +17,7 @@ export default class TubeZenPlugin extends Plugin {
 		await this.loadSettings();
 		this.syncEngine = new SyncEngine(this);
 		this.addSettingTab(new TubeZenSettingTab(this.app, this));
-
-		this.addCommand({
-			id: "sync-now",
-			name: "Sync now",
-			callback: () => {
-				void this.syncEngine.run({ source: "manual" });
-			},
-		});
-
+		registerCommands(this);
 		this.app.workspace.onLayoutReady(() => this.rescheduleSync());
 	}
 

@@ -1,6 +1,10 @@
 import { App, Notice } from "obsidian";
 import type TubeZenPlugin from "../main";
-import { TubeZenApiError, TubeZenClient } from "../api/client";
+import {
+	formatApiError,
+	TubeZenApiError,
+	TubeZenClient,
+} from "../api/client";
 import { writeNote } from "../render/writer";
 
 type SyncSource = "manual" | "interval";
@@ -87,48 +91,15 @@ export class SyncEngine {
 
 	private handleError(err: unknown, opts: SyncOpts): void {
 		if (err instanceof TubeZenApiError) {
-			switch (err.code) {
-				case "unauthenticated":
-					new Notice(
-						"TubeZen: token invalid. Re-paste it in settings.",
-						8000,
-					);
-					return;
-				case "forbidden":
-					new Notice(
-						"TubeZen: token missing tenant. Regenerate it.",
-						8000,
-					);
-					return;
-				case "feature_inactive": {
-					const body = err.body as
-						| { upgrade_url?: string }
-						| undefined;
-					const tail = body?.upgrade_url
-						? ` Upgrade: ${body.upgrade_url}`
-						: "";
-					new Notice(
-						`TubeZen: Pro feature not enabled.${tail}`,
-						10000,
-					);
-					return;
+			if (err.code === "network") {
+				console.warn("[TubeZen] network error:", err.message);
+				if (opts.source === "manual") {
+					new Notice(`TubeZen: ${formatApiError(err)}`, 6000);
 				}
-				case "network":
-					if (opts.source === "manual") {
-						new Notice(
-							`TubeZen: network error — ${err.message}`,
-							6000,
-						);
-					}
-					console.warn("[TubeZen] network error:", err.message);
-					return;
-				default:
-					new Notice(
-						`TubeZen sync failed: ${err.message}`,
-						8000,
-					);
-					return;
+				return;
 			}
+			new Notice(`TubeZen: ${formatApiError(err)}`, 10000);
+			return;
 		}
 		console.error("[TubeZen] sync error", err);
 		if (opts.source === "manual") {
