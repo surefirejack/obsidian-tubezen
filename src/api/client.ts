@@ -19,6 +19,45 @@ export interface MeResponse {
 	features?: Record<string, boolean>;
 }
 
+export interface ExportDTO {
+	version: 1;
+	tubezen_id: string;
+	title: string;
+	youtube_video_id: string;
+	youtube_url: string;
+	channel_title: string;
+	channel_url: string;
+	thumbnail_url: string;
+	published_at: string;
+	summarized_at: string;
+	duration_seconds: number;
+	tags: string[];
+	summary_markdown: string;
+	key_takeaways: unknown | null;
+	tubezen_url: string | null;
+}
+
+export interface ListSavedParams {
+	cursor?: string | null;
+	limit?: number;
+}
+
+export interface ListSavedResponse {
+	version: 1;
+	data: ExportDTO[];
+	links?: {
+		first?: string | null;
+		last?: string | null;
+		prev?: string | null;
+		next?: string | null;
+	};
+	meta?: {
+		next_cursor?: string | null;
+		prev_cursor?: string | null;
+		[key: string]: unknown;
+	};
+}
+
 export type ApiErrorCode =
 	| "network"
 	| "unauthenticated"
@@ -50,8 +89,38 @@ export class TubeZenClient {
 		return this.request<MeResponse>("GET", "/me");
 	}
 
-	private async request<T>(method: string, path: string): Promise<T> {
-		const url = `${this.baseUrl.replace(/\/+$/, "")}${path}`;
+	async listSaved(params: ListSavedParams = {}): Promise<ListSavedResponse> {
+		const query: Record<string, string> = {};
+		if (params.cursor) query.cursor = params.cursor;
+		if (params.limit != null) query.limit = String(params.limit);
+		return this.request<ListSavedResponse>(
+			"GET",
+			"/exports/saved",
+			query,
+		);
+	}
+
+	async getExport(idOrTubezenId: string): Promise<ExportDTO> {
+		const interactionId = idOrTubezenId.startsWith("tvi_")
+			? idOrTubezenId.slice(4)
+			: idOrTubezenId;
+		const response = await this.request<{ data: ExportDTO }>(
+			"GET",
+			`/exports/${encodeURIComponent(interactionId)}`,
+		);
+		return response.data;
+	}
+
+	private async request<T>(
+		method: string,
+		path: string,
+		query?: Record<string, string>,
+	): Promise<T> {
+		const search =
+			query && Object.keys(query).length
+				? "?" + new URLSearchParams(query).toString()
+				: "";
+		const url = `${this.baseUrl.replace(/\/+$/, "")}${path}${search}`;
 		let response: RequestUrlResponse;
 		try {
 			response = await requestUrl({
