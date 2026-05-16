@@ -1,6 +1,7 @@
 import {
 	App,
 	ButtonComponent,
+	Notice,
 	PluginSettingTab,
 	Setting,
 } from "obsidian";
@@ -218,6 +219,19 @@ export class TubeZenSettingTab extends PluginSettingTab {
 								value.trim() || DEFAULT_SETTINGS.baseUrl;
 							await this.plugin.saveSettings();
 						}),
+				);
+
+			new Setting(containerEl)
+				.setName("Reset sync cursor")
+				.setDesc(
+					"Clears the saved pagination cursor so the next sync scans from the start of your saved exports. To fully re-import after a backend change, also delete the existing notes from your vault before syncing.",
+				)
+				.addButton((btn) =>
+					btn.setButtonText("Reset").onClick(async () => {
+						this.plugin.settings.cursor = null;
+						await this.plugin.saveSettings();
+						new Notice("TubeZen: sync cursor reset.");
+					}),
 				);
 		}
 	}
