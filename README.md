@@ -2,13 +2,7 @@
 
 Import YouTube summaries from [TubeZen](https://tubezen.ai) into your Obsidian vault. Each saved video becomes a note with full frontmatter, a callout header, and the summary body — ready to link, tag, and reference like any other note.
 
-<!--
-TODO: add 2–4 screenshots once captured, in this order:
-1. docs/img/settings.png        — Settings tab showing a successful "Run test" result
-2. docs/img/synced-note.png     — A synced note in reading view (callout + frontmatter visible)
-3. docs/img/commands.png        — Command palette filtered to "TubeZen"
-4. docs/img/folder-by-tag.png   — File explorer showing TubeZen/<tag>/ organization (optional)
--->
+![A synced TubeZen note](docs/img/synced-note.png)
 
 ## Features
 
@@ -41,6 +35,8 @@ In Obsidian: Settings → Community plugins → Browse → search "TubeZen" → 
 
 ## Setup
 
+![Settings tab with a successful Test connection result](docs/img/settings.png)
+
 1. Open Settings → TubeZen.
 2. In your [TubeZen dashboard](https://tubezen.ai), open the API Tokens page, generate a new token, copy it.
 3. Paste the token into the **API token** field.
@@ -69,6 +65,8 @@ In Obsidian: Settings → Community plugins → Browse → search "TubeZen" → 
 | **Reset sync cursor** | Clears the saved pagination cursor so the next sync scans your saved exports from the beginning. To fully re-import after a backend change, also delete the existing notes from your vault before syncing. |
 
 ## Commands
+
+![Command palette filtered to TubeZen](docs/img/commands.png)
 
 | Command | When available | What it does |
 |---|---|---|
