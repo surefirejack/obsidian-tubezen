@@ -13,7 +13,7 @@ import {
 	TubeZenClient,
 } from "./api/client";
 
-export type FolderStructure = "flat" | "by-channel" | "by-date";
+export type FolderStructure = "flat" | "by-channel" | "by-date" | "by-tag";
 export type FilenameTemplate = "title" | "date-title" | "channel-title";
 export type SyncInterval = "off" | "15m" | "1h" | "6h";
 
@@ -36,7 +36,7 @@ export const DEFAULT_SETTINGS: TubeZenSettings = {
 	syncFolder: "TubeZen",
 	folderStructure: "flat",
 	filenameTemplate: "title",
-	tagPrefix: "tubezen/",
+	tagPrefix: "",
 	attribution: true,
 	syncInterval: "off",
 	showAdvanced: false,
@@ -47,6 +47,7 @@ const FOLDER_STRUCTURE_OPTIONS: Record<FolderStructure, string> = {
 	flat: "Flat",
 	"by-channel": "By channel",
 	"by-date": "By date (year/month)",
+	"by-tag": "By tag",
 };
 
 const FILENAME_TEMPLATE_OPTIONS: Record<FilenameTemplate, string> = {
