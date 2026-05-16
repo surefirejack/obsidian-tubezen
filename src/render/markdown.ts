@@ -18,9 +18,10 @@ function buildFrontmatter(
 	dto: ExportDTO,
 	settings: TubeZenSettings,
 ): string {
-	const tags = (dto.tags ?? []).map((t) =>
-		prefixTag(t, settings.tagPrefix),
-	);
+	const tags = (dto.tags ?? []).map((t) => normalizeTag(t, settings));
+	const channelTitle = settings.linkChannelTitle && dto.channel_title
+		? `[[${sanitizeWikilink(dto.channel_title)}]]`
+		: dto.channel_title;
 	const lines: string[] = ["---"];
 	lines.push(yamlScalar("tubezen_id", dto.tubezen_id));
 	lines.push(yamlScalar("content_type", dto.content_type));
@@ -31,7 +32,7 @@ function buildFrontmatter(
 	lines.push(yamlScalar("audio_url", dto.audio_url));
 	lines.push(yamlNumberOrNull("season_number", dto.season_number));
 	lines.push(yamlNumberOrNull("episode_number", dto.episode_number));
-	lines.push(yamlScalar("channel_title", dto.channel_title));
+	lines.push(yamlScalar("channel_title", channelTitle));
 	lines.push(yamlScalar("channel_url", dto.channel_url));
 	lines.push(yamlScalar("thumbnail_url", dto.thumbnail_url));
 	lines.push(yamlScalar("published_at", dto.published_at));
@@ -91,9 +92,12 @@ function buildFooter(): string {
 	return `---\n\n*Imported from [TubeZen](https://tubezen.ai) on ${today}.*`;
 }
 
-function prefixTag(tag: string, prefix: string): string {
-	if (!prefix || tag.startsWith(prefix)) return tag;
-	return `${prefix}${tag}`;
+function normalizeTag(tag: string, settings: TubeZenSettings): string {
+	const replacement = settings.tagWhitespaceReplacement;
+	const cleaned = tag.toLowerCase().replace(/\s+/g, replacement);
+	const prefix = settings.tagPrefix;
+	if (!prefix || cleaned.startsWith(prefix)) return cleaned;
+	return `${prefix}${cleaned}`;
 }
 
 function yamlScalar(key: string, value: string | null | undefined): string {

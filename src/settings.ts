@@ -16,6 +16,7 @@ import {
 export type FolderStructure = "flat" | "by-channel" | "by-date" | "by-tag";
 export type FilenameTemplate = "title" | "date-title" | "channel-title";
 export type SyncInterval = "off" | "15m" | "1h" | "6h";
+export type TagWhitespaceReplacement = "-" | "_";
 
 export interface TubeZenSettings {
 	baseUrl: string;
@@ -24,6 +25,8 @@ export interface TubeZenSettings {
 	folderStructure: FolderStructure;
 	filenameTemplate: FilenameTemplate;
 	tagPrefix: string;
+	tagWhitespaceReplacement: TagWhitespaceReplacement;
+	linkChannelTitle: boolean;
 	attribution: boolean;
 	syncInterval: SyncInterval;
 	syncVideos: boolean;
@@ -40,6 +43,8 @@ export const DEFAULT_SETTINGS: TubeZenSettings = {
 	folderStructure: "flat",
 	filenameTemplate: "title",
 	tagPrefix: "",
+	tagWhitespaceReplacement: "-",
+	linkChannelTitle: true,
 	attribution: true,
 	syncInterval: "off",
 	syncVideos: true,
@@ -82,6 +87,11 @@ const SYNC_INTERVAL_OPTIONS: Record<SyncInterval, string> = {
 	"15m": "Every 15 minutes",
 	"1h": "Every hour",
 	"6h": "Every 6 hours",
+};
+
+const TAG_WHITESPACE_OPTIONS: Record<TagWhitespaceReplacement, string> = {
+	"-": "Hyphen (wind-sport)",
+	_: "Underscore (wind_sport)",
 };
 
 export class TubeZenSettingTab extends PluginSettingTab {
@@ -211,6 +221,20 @@ export class TubeZenSettingTab extends PluginSettingTab {
 			);
 
 		new Setting(containerEl)
+			.setName("Link channel title")
+			.setDesc(
+				"Write channel_title as a wikilink (e.g. [[Lachie White]]) so backlinks group every video from the same creator.",
+			)
+			.addToggle((t) =>
+				t
+					.setValue(this.plugin.settings.linkChannelTitle)
+					.onChange(async (value) => {
+						this.plugin.settings.linkChannelTitle = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
 			.setName("Attribution footer")
 			.setDesc("Append a small \"Imported from TubeZen\" footer to each note.")
 			.addToggle((t) =>
@@ -251,6 +275,22 @@ export class TubeZenSettingTab extends PluginSettingTab {
 			);
 
 		if (this.plugin.settings.showAdvanced) {
+			new Setting(containerEl)
+				.setName("Tag whitespace replacement")
+				.setDesc(
+					"Obsidian tags can't contain spaces. Imported tags are lowercased and spaces are replaced with this character.",
+				)
+				.addDropdown((dd) =>
+					dd
+						.addOptions(TAG_WHITESPACE_OPTIONS)
+						.setValue(this.plugin.settings.tagWhitespaceReplacement)
+						.onChange(async (value) => {
+							this.plugin.settings.tagWhitespaceReplacement =
+								value as TagWhitespaceReplacement;
+							await this.plugin.saveSettings();
+						}),
+				);
+
 			new Setting(containerEl)
 				.setName("API base URL")
 				.setDesc(
