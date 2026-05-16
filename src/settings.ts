@@ -180,6 +180,7 @@ export class TubeZenSettingTab extends PluginSettingTab {
 					.onChange(async (value) => {
 						this.plugin.settings.syncInterval = value as SyncInterval;
 						await this.plugin.saveSettings();
+						this.plugin.rescheduleSync();
 					}),
 			);
 
