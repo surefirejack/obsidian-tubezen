@@ -13,7 +13,9 @@ export async function writeNote(
 	await ensureFolder(app, folder);
 	const filename = resolveFilename(dto, settings);
 	const path = uniquePath(app, folder, filename);
-	const content = renderNote(dto, settings);
+	const content = renderNote(dto, settings, {
+		importedAt: new Date().toISOString(),
+	});
 	return await app.vault.create(path, content);
 }
 

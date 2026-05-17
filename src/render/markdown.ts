@@ -1,22 +1,28 @@
 import type { ExportDTO, PodcastExportDTO } from "../api/client";
 import type { TubeZenSettings } from "../settings";
 
+export interface RenderOpts {
+	importedAt: string;
+}
+
 export function renderNote(
 	dto: ExportDTO,
 	settings: TubeZenSettings,
+	opts: RenderOpts,
 ): string {
 	const sections: string[] = [
-		buildFrontmatter(dto, settings),
+		buildFrontmatter(dto, settings, opts),
 		buildCallout(dto),
 		buildSummary(dto),
 	];
-	if (settings.attribution) sections.push(buildFooter());
+	if (settings.attribution) sections.push(buildFooter(opts.importedAt));
 	return sections.join("\n\n") + "\n";
 }
 
 function buildFrontmatter(
 	dto: ExportDTO,
 	settings: TubeZenSettings,
+	opts: RenderOpts,
 ): string {
 	const tags = (dto.tags ?? []).map((t) => normalizeTag(t, settings));
 	const channelTitle = settings.linkChannelTitle && dto.channel_title
@@ -37,6 +43,7 @@ function buildFrontmatter(
 	lines.push(yamlScalar("thumbnail_url", dto.thumbnail_url));
 	lines.push(yamlScalar("published_at", dto.published_at));
 	lines.push(yamlScalar("summarized_at", dto.summarized_at));
+	lines.push(yamlScalar("imported_at", opts.importedAt));
 	lines.push(`duration_seconds: ${dto.duration_seconds}`);
 	lines.push(yamlScalar("category", dto.saved_tag));
 	lines.push(yamlList("tags", tags));
@@ -87,9 +94,9 @@ function buildSummary(dto: ExportDTO): string {
 	return `## Summary\n\n${dto.summary_markdown ?? ""}`;
 }
 
-function buildFooter(): string {
-	const today = new Date().toISOString().slice(0, 10);
-	return `---\n\n*Imported from [TubeZen](https://tubezen.ai) on ${today}.*`;
+function buildFooter(importedAt: string): string {
+	const day = importedAt.slice(0, 10);
+	return `---\n\n*Imported from [TubeZen](https://tubezen.ai) on ${day}.*`;
 }
 
 function normalizeTag(tag: string, settings: TubeZenSettings): string {

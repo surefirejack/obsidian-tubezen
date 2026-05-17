@@ -80,7 +80,13 @@ async function reimportActive(
 	const client = new TubeZenClient(settings.baseUrl, settings.apiToken);
 	try {
 		const dto = await client.getExport(ctx.tubezenId);
-		const content = renderNote(dto, settings);
+		const existing = plugin.app.metadataCache.getFileCache(ctx.file)
+			?.frontmatter?.imported_at;
+		const importedAt =
+			typeof existing === "string" && existing
+				? existing
+				: new Date().toISOString();
+		const content = renderNote(dto, settings, { importedAt });
 		await plugin.app.vault.modify(ctx.file, content);
 		new Notice(`TubeZen: re-imported "${dto.title}".`);
 	} catch (err) {
