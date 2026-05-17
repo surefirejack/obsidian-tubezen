@@ -20,6 +20,12 @@ Import YouTube and podcast summaries from [TubeZen](https://tubezen.ai) into you
 - A [TubeZen](https://tubezen.ai) account with the **Obsidian export** feature enabled on your subscription
 - A personal access token generated from your TubeZen dashboard
 
+## Platform support
+
+Works on **desktop and mobile** (iOS and Android). All vault writes go through Obsidian's cross-platform vault API and HTTP requests use Obsidian's `requestUrl`, so there are no Node.js or Electron dependencies.
+
+One caveat on mobile: the background sync interval only ticks while Obsidian is in the foreground. iOS in particular suspends backgrounded apps aggressively, so an "Every 15 minutes" setting effectively means "every 15 minutes that the app is open." Manual sync from the command palette works the same on all platforms.
+
 ## Installation
 
 ### From the community plugins directory
