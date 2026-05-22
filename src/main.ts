@@ -8,6 +8,8 @@ import {
 } from "./settings";
 import { SyncEngine } from "./sync/engine";
 import { registerCommands } from "./commands";
+import { buildPodcastSeekProcessor } from "./render/podcastSeek";
+import { buildVideoSeekProcessor } from "./render/videoSeek";
 
 export default class TubeZenPlugin extends Plugin {
 	settings!: TubeZenSettings;
@@ -19,6 +21,8 @@ export default class TubeZenPlugin extends Plugin {
 		this.syncEngine = new SyncEngine(this);
 		this.addSettingTab(new TubeZenSettingTab(this.app, this));
 		registerCommands(this);
+		this.registerMarkdownPostProcessor(buildPodcastSeekProcessor(this.app));
+		this.registerMarkdownPostProcessor(buildVideoSeekProcessor(this.app));
 		this.app.workspace.onLayoutReady(() => this.rescheduleSync());
 	}
 

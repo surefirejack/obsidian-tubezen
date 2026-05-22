@@ -25,3 +25,13 @@
 	border-left-color: var(--text-error);
 	color: var(--text-error);
 }
+
+.tubezen-seek-link {
+	color: var(--link-color);
+	text-decoration: underline;
+	cursor: pointer;
+}
+
+.tubezen-seek-link:hover {
+	color: var(--link-color-hover);
+}

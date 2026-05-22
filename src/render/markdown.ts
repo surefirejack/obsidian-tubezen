@@ -13,8 +13,10 @@ export function renderNote(
 	const sections: string[] = [
 		buildFrontmatter(dto, settings, opts),
 		buildCallout(dto),
-		buildSummary(dto),
 	];
+	const embed = buildEmbed(dto, settings);
+	if (embed) sections.push(embed);
+	sections.push(buildSummary(dto));
 	if (settings.attribution) sections.push(buildFooter(opts.importedAt));
 	return sections.join("\n\n") + "\n";
 }
@@ -34,13 +36,10 @@ function buildFrontmatter(
 	lines.push(yamlScalar("title", dto.title));
 	lines.push(yamlScalar("youtube_video_id", dto.youtube_video_id));
 	lines.push(yamlScalar("youtube_url", dto.youtube_url));
-	lines.push(yamlScalar("taddy_uuid", dto.taddy_uuid));
-	lines.push(yamlScalar("audio_url", dto.audio_url));
 	lines.push(yamlNumberOrNull("season_number", dto.season_number));
 	lines.push(yamlNumberOrNull("episode_number", dto.episode_number));
 	lines.push(yamlScalar("channel_title", channelTitle));
 	lines.push(yamlScalar("channel_url", dto.channel_url));
-	lines.push(yamlScalar("thumbnail_url", dto.thumbnail_url));
 	lines.push(yamlScalar("published_at", dto.published_at));
 	lines.push(yamlScalar("summarized_at", dto.summarized_at));
 	lines.push(yamlScalar("imported_at", opts.importedAt));
@@ -81,6 +80,26 @@ function buildCallout(dto: ExportDTO): string {
 	}
 
 	return lines.join("\n");
+}
+
+function buildEmbed(
+	dto: ExportDTO,
+	settings: TubeZenSettings,
+): string | null {
+	if (dto.content_type === "youtube") {
+		if (!settings.embedYouTubeVideo || !dto.youtube_url) return null;
+		return `![](${dto.youtube_url})`;
+	}
+	if (!settings.embedPodcastPlayer || !dto.audio_url) return null;
+	return `<audio controls src="${escapeHtmlAttr(dto.audio_url)}"></audio>`;
+}
+
+function escapeHtmlAttr(s: string): string {
+	return s
+		.replace(/&/g, "&amp;")
+		.replace(/"/g, "&quot;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;");
 }
 
 function formatSeasonEpisode(dto: PodcastExportDTO): string | null {

@@ -31,6 +31,8 @@ export interface TubeZenSettings {
 	syncInterval: SyncInterval;
 	syncVideos: boolean;
 	syncPodcasts: boolean;
+	embedYouTubeVideo: boolean;
+	embedPodcastPlayer: boolean;
 	showAdvanced: boolean;
 	videoCursor: string | null;
 	podcastCursor: string | null;
@@ -49,6 +51,8 @@ export const DEFAULT_SETTINGS: TubeZenSettings = {
 	syncInterval: "off",
 	syncVideos: true,
 	syncPodcasts: true,
+	embedYouTubeVideo: true,
+	embedPodcastPlayer: true,
 	showAdvanced: false,
 	videoCursor: null,
 	podcastCursor: null,
@@ -275,6 +279,34 @@ export class TubeZenSettingTab extends PluginSettingTab {
 			);
 
 		if (this.plugin.settings.showAdvanced) {
+			new Setting(containerEl)
+				.setName("Embed YouTube video")
+				.setDesc(
+					"Embed an inline YouTube player at the top of each video note.",
+				)
+				.addToggle((t) =>
+					t
+						.setValue(this.plugin.settings.embedYouTubeVideo)
+						.onChange(async (value) => {
+							this.plugin.settings.embedYouTubeVideo = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+
+			new Setting(containerEl)
+				.setName("Embed podcast player")
+				.setDesc(
+					"Embed an inline audio player at the top of each podcast note.",
+				)
+				.addToggle((t) =>
+					t
+						.setValue(this.plugin.settings.embedPodcastPlayer)
+						.onChange(async (value) => {
+							this.plugin.settings.embedPodcastPlayer = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+
 			new Setting(containerEl)
 				.setName("Tag whitespace replacement")
 				.setDesc(
