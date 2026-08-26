@@ -128,7 +128,12 @@ function buildTranscript(
 ): string | null {
 	if (settings.transcriptMode === "off") return null;
 
-	const body = dto.transcript?.trim();
+	const raw = dto.transcript?.trim();
+	if (!raw) return null;
+
+	const body = settings.transcriptTimestamps
+		? raw
+		: reflowTranscript(raw);
 	if (!body) return null;
 
 	if (settings.transcriptMode === "plain") {
@@ -143,6 +148,39 @@ function buildTranscript(
 		.join("\n");
 
 	return `> [!quote]- Transcript\n${quoted}`;
+}
+
+/**
+ * Turns caption cues into readable prose.
+ *
+ * Source transcripts arrive as one "[0:00] some words" line per caption cue,
+ * so sentences are split every few seconds and the result reads as fragments.
+ * Dropping the markers and rejoining lets sentences run to their natural end;
+ * grouping the result into paragraphs keeps a 40-minute transcript from
+ * rendering as one unbroken wall of text.
+ */
+function reflowTranscript(raw: string): string {
+	const words = raw
+		// Cue markers: [0:00], [12:34], [1:02:03].
+		.replace(/\[\d{1,2}:\d{2}(?::\d{2})?\]/g, " ")
+		// Caption artefacts the source inserts, e.g. [Music], [Applause].
+		.replace(/\[[A-Za-z][^\]\n]{0,30}\]/g, " ")
+		.replace(/\s+/g, " ")
+		.trim();
+
+	if (!words) return "";
+
+	// No sentence punctuation survives in most auto-captions, so paragraphs are
+	// grouped by word count rather than by sentence.
+	const WORDS_PER_PARAGRAPH = 110;
+	const tokens = words.split(" ");
+	const paragraphs: string[] = [];
+
+	for (let i = 0; i < tokens.length; i += WORDS_PER_PARAGRAPH) {
+		paragraphs.push(tokens.slice(i, i + WORDS_PER_PARAGRAPH).join(" "));
+	}
+
+	return paragraphs.join("\n\n");
 }
 
 function buildFooter(importedAt: string): string {

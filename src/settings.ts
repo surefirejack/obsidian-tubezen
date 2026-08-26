@@ -41,6 +41,13 @@ export interface TubeZenSettings {
 	 * much sync downloads and writes.
 	 */
 	transcriptMode: TranscriptMode;
+	/**
+	 * Keep the "[0:00]" cue markers the source captions carry. Off by default:
+	 * they arrive one per caption line, which breaks sentences into fragments,
+	 * and unlike the timestamps in a summary they are plain text rather than
+	 * seek links, so they are not clickable.
+	 */
+	transcriptTimestamps: boolean;
 	showAdvanced: boolean;
 	videoCursor: string | null;
 	podcastCursor: string | null;
@@ -62,6 +69,7 @@ export const DEFAULT_SETTINGS: TubeZenSettings = {
 	embedYouTubeVideo: true,
 	embedPodcastPlayer: true,
 	transcriptMode: "off",
+	transcriptTimestamps: false,
 	showAdvanced: false,
 	videoCursor: null,
 	podcastCursor: null,
@@ -197,8 +205,25 @@ export class TubeZenSettingTab extends PluginSettingTab {
 						this.plugin.settings.transcriptMode =
 							value as TranscriptMode;
 						await this.plugin.saveSettings();
+						this.display();
 					}),
 			);
+
+		if (this.plugin.settings.transcriptMode !== "off") {
+			new Setting(containerEl)
+				.setName("Keep transcript timestamps")
+				.setDesc(
+					"Source captions arrive as one timestamped line per cue, which reads as fragments. Off reflows them into paragraphs. These markers are plain text, not seek links -- only summary timestamps are clickable.",
+				)
+				.addToggle((t) =>
+					t
+						.setValue(this.plugin.settings.transcriptTimestamps)
+						.onChange(async (value) => {
+							this.plugin.settings.transcriptTimestamps = value;
+							await this.plugin.saveSettings();
+						}),
+				);
+		}
 
 		new Setting(containerEl)
 			.setName("Sync folder")
