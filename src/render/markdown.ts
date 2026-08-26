@@ -17,6 +17,8 @@ export function renderNote(
 	const embed = buildEmbed(dto, settings);
 	if (embed) sections.push(embed);
 	sections.push(buildSummary(dto));
+	const transcript = buildTranscript(dto, settings);
+	if (transcript) sections.push(transcript);
 	if (settings.attribution) sections.push(buildFooter(opts.importedAt));
 	return sections.join("\n\n") + "\n";
 }
@@ -111,6 +113,36 @@ function formatSeasonEpisode(dto: PodcastExportDTO): string | null {
 
 function buildSummary(dto: ExportDTO): string {
 	return `## Summary\n\n${dto.summary_markdown ?? ""}`;
+}
+
+/**
+ * Renders the transcript, when one was fetched and the user asked for it.
+ *
+ * The callout form is the default because transcripts routinely run past
+ * 30KB: collapsed, the note still reads as a summary, and the raw text is one
+ * click away rather than burying everything below it.
+ */
+function buildTranscript(
+	dto: ExportDTO,
+	settings: TubeZenSettings,
+): string | null {
+	if (settings.transcriptMode === "off") return null;
+
+	const body = dto.transcript?.trim();
+	if (!body) return null;
+
+	if (settings.transcriptMode === "plain") {
+		return `## Transcript\n\n${body}`;
+	}
+
+	// Every line needs the "> " marker, including blank ones, or the callout
+	// terminates at the first empty line and the rest spills into the note.
+	const quoted = body
+		.split(/\r?\n/)
+		.map((line) => (line.length ? `> ${line}` : ">"))
+		.join("\n");
+
+	return `> [!quote]- Transcript\n${quoted}`;
 }
 
 function buildFooter(importedAt: string): string {

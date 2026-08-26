@@ -34,6 +34,18 @@ interface BaseExportDTO {
 	summary_markdown: string;
 	key_takeaways: unknown | null;
 	tubezen_url: string | null;
+	/**
+	 * Whether a transcript exists server-side. Present on every response,
+	 * including list pages, so the client can decide what is worth fetching.
+	 */
+	transcript_available?: boolean;
+	/**
+	 * The raw transcript body. Only the single-item endpoint returns it, and
+	 * only when the account's plan carries transcript access -- list pages
+	 * always omit it because transcripts average ~37KB and would make a page
+	 * several megabytes.
+	 */
+	transcript?: string | null;
 }
 
 export interface YouTubeExportDTO extends BaseExportDTO {

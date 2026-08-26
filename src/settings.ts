@@ -17,6 +17,7 @@ export type FolderStructure = "flat" | "by-channel" | "by-date" | "by-tag";
 export type FilenameTemplate = "title" | "date-title" | "channel-title";
 export type SyncInterval = "off" | "15m" | "1h" | "6h";
 export type TagWhitespaceReplacement = "-" | "_";
+export type TranscriptMode = "off" | "callout" | "plain";
 
 export interface TubeZenSettings {
 	baseUrl: string;
@@ -33,6 +34,13 @@ export interface TubeZenSettings {
 	syncPodcasts: boolean;
 	embedYouTubeVideo: boolean;
 	embedPodcastPlayer: boolean;
+	/**
+	 * How to render the transcript, or "off" to leave it out. Off by default:
+	 * transcripts average ~37KB and each one costs an extra API call, so this
+	 * stays something the user opts into rather than a silent change to how
+	 * much sync downloads and writes.
+	 */
+	transcriptMode: TranscriptMode;
 	showAdvanced: boolean;
 	videoCursor: string | null;
 	podcastCursor: string | null;
@@ -53,6 +61,7 @@ export const DEFAULT_SETTINGS: TubeZenSettings = {
 	syncPodcasts: true,
 	embedYouTubeVideo: true,
 	embedPodcastPlayer: true,
+	transcriptMode: "off",
 	showAdvanced: false,
 	videoCursor: null,
 	podcastCursor: null,
@@ -91,6 +100,12 @@ const SYNC_INTERVAL_OPTIONS: Record<SyncInterval, string> = {
 	"15m": "Every 15 minutes",
 	"1h": "Every hour",
 	"6h": "Every 6 hours",
+};
+
+const TRANSCRIPT_MODE_OPTIONS: Record<TranscriptMode, string> = {
+	off: "Don't include transcripts",
+	callout: "Collapsible section (recommended)",
+	plain: "Plain heading",
 };
 
 const TAG_WHITESPACE_OPTIONS: Record<TagWhitespaceReplacement, string> = {
@@ -165,6 +180,22 @@ export class TubeZenSettingTab extends PluginSettingTab {
 					.setValue(this.plugin.settings.syncPodcasts)
 					.onChange(async (value) => {
 						this.plugin.settings.syncPodcasts = value;
+						await this.plugin.saveSettings();
+					}),
+			);
+
+		new Setting(containerEl)
+			.setName("Include transcripts")
+			.setDesc(
+				"Requires a subscription that includes transcript access. Adds one API call per note and transcripts are long (often 30-60KB), so syncing is slower and notes are much larger.",
+			)
+			.addDropdown((dd) =>
+				dd
+					.addOptions(TRANSCRIPT_MODE_OPTIONS)
+					.setValue(this.plugin.settings.transcriptMode)
+					.onChange(async (value) => {
+						this.plugin.settings.transcriptMode =
+							value as TranscriptMode;
 						await this.plugin.saveSettings();
 					}),
 			);
@@ -415,6 +446,14 @@ function renderMeResult(el: HTMLElement, me: MeResponse): void {
 		text: obsidianEnabled
 			? "Obsidian export: enabled"
 			: "Obsidian export is NOT enabled on this account — sync will fail with 402.",
+	});
+
+	const transcriptEnabled =
+		features.transcript_access ?? features.transcript_access_enabled ?? false;
+	el.createDiv({
+		text: transcriptEnabled
+			? "Transcript access: enabled"
+			: "Transcript access: not on this plan — notes will contain summaries only.",
 	});
 
 	const sub = me.subscription;

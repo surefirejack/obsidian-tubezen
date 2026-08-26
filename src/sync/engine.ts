@@ -1,6 +1,7 @@
 import { App, Notice } from "obsidian";
 import type TubeZenPlugin from "../main";
 import {
+	ExportDTO,
 	formatApiError,
 	SyncType,
 	TubeZenApiError,
@@ -119,7 +120,7 @@ export class SyncEngine {
 					skipped++;
 					continue;
 				}
-				await writeNote(plugin, dto);
+				await writeNote(plugin, await this.withTranscript(client, dto));
 				seen.add(dto.tubezen_id);
 				created++;
 			}
@@ -133,6 +134,34 @@ export class SyncEngine {
 		}
 
 		return { created, skipped };
+	}
+
+	/**
+	 * Fetches the full item when the user wants transcripts, since list pages
+	 * never carry the body.
+	 *
+	 * A failure here returns the list DTO unchanged rather than propagating:
+	 * losing the transcript is worth far less than losing the note, and an
+	 * account without transcript access would otherwise fail every single
+	 * item of a sync.
+	 */
+	private async withTranscript(
+		client: TubeZenClient,
+		dto: ExportDTO,
+	): Promise<ExportDTO> {
+		if (this.plugin.settings.transcriptMode === "off") return dto;
+		if (dto.transcript_available === false) return dto;
+
+		try {
+			const full = await client.getExport(dto.tubezen_id);
+			return full.transcript ? full : dto;
+		} catch (err) {
+			console.warn(
+				`[TubeZen] transcript fetch failed for ${dto.tubezen_id}`,
+				err,
+			);
+			return dto;
+		}
 	}
 
 	private handleError(err: unknown, opts: SyncOpts): void {
