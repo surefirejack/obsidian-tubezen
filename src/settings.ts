@@ -48,6 +48,14 @@ export interface TubeZenSettings {
 	 * seek links, so they are not clickable.
 	 */
 	transcriptTimestamps: boolean;
+	/**
+	 * What the last successful /me call said about transcript access, or null
+	 * when no call has been made yet. The plugin itself is free with any
+	 * TubeZen account -- transcripts are the one part that needs a
+	 * subscription -- so this exists purely to explain the empty transcript
+	 * section instead of letting it look broken.
+	 */
+	transcriptAccess: boolean | null;
 	showAdvanced: boolean;
 	videoCursor: string | null;
 	podcastCursor: string | null;
@@ -70,6 +78,7 @@ export const DEFAULT_SETTINGS: TubeZenSettings = {
 	embedPodcastPlayer: true,
 	transcriptMode: "off",
 	transcriptTimestamps: false,
+	transcriptAccess: null,
 	showAdvanced: false,
 	videoCursor: null,
 	podcastCursor: null,
@@ -121,7 +130,12 @@ const TAG_WHITESPACE_OPTIONS: Record<TagWhitespaceReplacement, string> = {
 	_: "Underscore (wind_sport)",
 };
 
+const TRANSCRIPT_SIZE_NOTE =
+	"Adds one API call per note and transcripts are long (often 30-60KB), so syncing is slower and notes are much larger.";
+
 export class TubeZenSettingTab extends PluginSettingTab {
+	private transcriptSetting: Setting | null = null;
+
 	constructor(
 		app: App,
 		private readonly plugin: TubeZenPlugin,
@@ -132,6 +146,7 @@ export class TubeZenSettingTab extends PluginSettingTab {
 	display(): void {
 		const { containerEl } = this;
 		containerEl.empty();
+		this.transcriptSetting = null;
 
 		new Setting(containerEl).setName("Authentication").setHeading();
 
@@ -155,7 +170,7 @@ export class TubeZenSettingTab extends PluginSettingTab {
 		const testRow = new Setting(containerEl)
 			.setName("Test connection")
 			.setDesc(
-				"Verify the token and check that Obsidian export is enabled on your account.",
+				"Verify the token and see what your TubeZen account includes.",
 			);
 
 		const statusEl = containerEl.createDiv({ cls: "tubezen-status" });
@@ -192,11 +207,9 @@ export class TubeZenSettingTab extends PluginSettingTab {
 					}),
 			);
 
-		new Setting(containerEl)
+		this.transcriptSetting = new Setting(containerEl)
 			.setName("Include transcripts")
-			.setDesc(
-				"Requires a subscription that includes transcript access. Adds one API call per note and transcripts are long (often 30-60KB), so syncing is slower and notes are much larger.",
-			)
+			.setDesc(this.transcriptDesc())
 			.addDropdown((dd) =>
 				dd
 					.addOptions(TRANSCRIPT_MODE_OPTIONS)
@@ -411,6 +424,21 @@ export class TubeZenSettingTab extends PluginSettingTab {
 		}
 	}
 
+	private transcriptDesc(): string {
+		switch (this.plugin.settings.transcriptAccess) {
+			case true:
+				return `Your subscription includes transcript access. ${TRANSCRIPT_SIZE_NOTE}`;
+			case false:
+				return `Your TubeZen account does not include transcript access, so notes will contain summaries only. Everything else in the plugin works without a subscription. ${TRANSCRIPT_SIZE_NOTE}`;
+			default:
+				return `Requires a subscription that includes transcript access; the rest of the plugin is free with any TubeZen account. ${TRANSCRIPT_SIZE_NOTE}`;
+		}
+	}
+
+	private refreshTranscriptDesc(): void {
+		this.transcriptSetting?.setDesc(this.transcriptDesc());
+	}
+
 	private async runConnectionTest(
 		statusEl: HTMLElement,
 		btn: ButtonComponent,
@@ -435,6 +463,9 @@ export class TubeZenSettingTab extends PluginSettingTab {
 			const me = await client.me();
 			statusEl.addClass("tubezen-status-success");
 			renderMeResult(statusEl, me);
+			this.plugin.settings.transcriptAccess = readTranscriptAccess(me);
+			await this.plugin.saveSettings();
+			this.refreshTranscriptDesc();
 		} catch (err) {
 			statusEl.empty();
 			statusEl.addClass("tubezen-status-error");
@@ -450,6 +481,13 @@ export class TubeZenSettingTab extends PluginSettingTab {
 			btn.setButtonText(originalLabel);
 		}
 	}
+}
+
+function readTranscriptAccess(me: MeResponse): boolean {
+	const features = me.features ?? {};
+	return (
+		features.transcript_access ?? features.transcript_access_enabled ?? false
+	);
 }
 
 function renderMeResult(el: HTMLElement, me: MeResponse): void {
@@ -473,8 +511,7 @@ function renderMeResult(el: HTMLElement, me: MeResponse): void {
 			: "Obsidian export is NOT enabled on this account — sync will fail with 402.",
 	});
 
-	const transcriptEnabled =
-		features.transcript_access ?? features.transcript_access_enabled ?? false;
+	const transcriptEnabled = readTranscriptAccess(me);
 	el.createDiv({
 		text: transcriptEnabled
 			? "Transcript access: enabled"

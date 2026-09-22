@@ -17,7 +17,7 @@ Import YouTube and podcast summaries from [TubeZen](https://tubezen.ai) into you
 ## Requirements
 
 - Obsidian **1.5.0** or later
-- A [TubeZen](https://tubezen.ai) account with the **Obsidian export** feature enabled on your subscription
+- A [TubeZen](https://tubezen.ai) account — the plugin is free on every plan, including the free tier. Importing raw **transcripts** alongside the summaries needs a subscription that includes transcript access; everything else works without one.
 - A personal access token generated from your TubeZen dashboard
 
 ## Platform support
