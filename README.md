@@ -2,7 +2,7 @@
 
 Import YouTube and podcast summaries from [TubeZen](https://tubezen.ai) into your Obsidian vault. Each saved item becomes a note with full frontmatter, a callout header, and the summary body — ready to link, tag, and reference like any other note.
 
-![A synced TubeZen note](docs/img/synced-note.png)
+![A synced TubeZen note](https://raw.githubusercontent.com/surefirejack/obsidian-tubezen/main/docs/img/synced-note.png)
 
 ## Features
 
@@ -44,12 +44,12 @@ In Obsidian: Settings → Community plugins → Browse → search "TubeZen" → 
 1. Open Settings → TubeZen.
 2. In your [TubeZen dashboard](https://tubezen.ai), open the API Tokens page, generate a new token, copy it.
 
-   ![Generating an API token in the TubeZen dashboard](docs/img/create-api-token.png)
+   ![Generating an API token in the TubeZen dashboard](https://raw.githubusercontent.com/surefirejack/obsidian-tubezen/main/docs/img/create-api-token.png)
 
 3. Paste the token into the **API token** field.
 4. Click **Run test** under "Test connection". You should see your account info and `Obsidian export: enabled`.
 
-   ![Settings tab with a successful Test connection result](docs/img/settings.png)
+   ![Settings tab with a successful Test connection result](https://raw.githubusercontent.com/surefirejack/obsidian-tubezen/main/docs/img/settings.png)
 
 5. Pick a folder organization, filename template, and sync interval.
 6. Open the command palette (Cmd/Ctrl + P) and run **TubeZen: Sync now**.
@@ -78,7 +78,7 @@ In Obsidian: Settings → Community plugins → Browse → search "TubeZen" → 
 
 ## Commands
 
-![Command palette filtered to TubeZen](docs/img/commands.png)
+![Command palette filtered to TubeZen](https://raw.githubusercontent.com/surefirejack/obsidian-tubezen/main/docs/img/commands.png)
 
 | Command | When available | What it does |
 |---|---|---|
