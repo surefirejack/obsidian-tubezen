@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.2
+
+- Republishes 1.0.1. That release was created by hand and shipped without its
+  build artifacts, so it could not be installed.
+
 ## 1.0.1
 
 - Seek links in reading view are now built with Obsidian's `createEl` helper rather than `document.createElement`.
