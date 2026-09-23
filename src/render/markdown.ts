@@ -225,7 +225,7 @@ function yamlString(s: string): string {
 }
 
 function sanitizeWikilink(s: string): string {
-	return s.replace(/[\[\]|]/g, "").trim() || "Unknown";
+	return s.replace(/[[\]|]/g, "").trim() || "Unknown";
 }
 
 function formatDuration(seconds: number): string {

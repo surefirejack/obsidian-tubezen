@@ -33,11 +33,7 @@ export default class TubeZenPlugin extends Plugin {
 	async loadSettings() {
 		const raw = ((await this.loadData()) ?? {}) as Record<string, unknown>;
 		const { data, didMigrate } = migrateSettings(raw);
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			data,
-		) as TubeZenSettings;
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
 		if (didMigrate) await this.saveSettings();
 	}
 

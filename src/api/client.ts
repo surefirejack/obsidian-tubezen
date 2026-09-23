@@ -32,7 +32,7 @@ interface BaseExportDTO {
 	saved_tag: string | null;
 	tags: string[];
 	summary_markdown: string;
-	key_takeaways: unknown | null;
+	key_takeaways: unknown;
 	tubezen_url: string | null;
 	/**
 	 * Whether a transcript exists server-side. Present on every response,

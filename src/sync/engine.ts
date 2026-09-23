@@ -72,26 +72,20 @@ export class SyncEngine {
 
 		let created = 0;
 		let skipped = 0;
-		let deferredError: unknown = null;
+		let deferredError: Error | null = null;
 
-		if (settings.syncVideos) {
+		for (const type of ["video", "podcast"] as const) {
+			if (type === "video" && !settings.syncVideos) continue;
+			if (type === "podcast" && !settings.syncPodcasts) continue;
+
 			try {
-				const result = await this.walkType(client, seen, "video");
+				const result = await this.walkType(client, seen, type);
 				created += result.created;
 				skipped += result.skipped;
 			} catch (err) {
 				if (isFatalError(err)) throw err;
-				deferredError = err;
-			}
-		}
-
-		if (settings.syncPodcasts) {
-			try {
-				const result = await this.walkType(client, seen, "podcast");
-				created += result.created;
-				skipped += result.skipped;
-			} catch (err) {
-				throw err;
+				deferredError ??=
+					err instanceof Error ? err : new Error(String(err));
 			}
 		}
 
@@ -195,8 +189,10 @@ function isFatalError(err: unknown): boolean {
 function buildTubezenIndex(app: App): Set<string> {
 	const ids = new Set<string>();
 	for (const file of app.vault.getMarkdownFiles()) {
-		const cache = app.metadataCache.getFileCache(file);
-		const id = cache?.frontmatter?.tubezen_id;
+		const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter as
+			| Record<string, unknown>
+			| undefined;
+		const id = frontmatter?.tubezen_id;
 		if (typeof id === "string") ids.add(id);
 	}
 	return ids;

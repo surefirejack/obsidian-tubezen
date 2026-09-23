@@ -10,6 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      # Provenance attestations: id-token signs the claim, attestations stores it.
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v4
 
@@ -21,6 +24,30 @@ jobs:
       - run: npm ci
       - run: npm run build
 
+      # The release description comes from CHANGELOG.md, so a version can never
+      # ship without one. No matching section is a hard failure, not a silent
+      # empty release.
+      - name: Extract release notes
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          awk -v tag="## $TAG" '$0 == tag {found=1; next} /^## /{if (found) exit} found' \
+            CHANGELOG.md > RELEASE_NOTES.md
+          if [ ! -s RELEASE_NOTES.md ]; then
+            echo "CHANGELOG.md has no '## $TAG' section" >&2
+            exit 1
+          fi
+
+      # Lets anyone cryptographically verify that these assets were built from
+      # this repo at this commit, rather than uploaded by hand.
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
+
       # Obsidian installs the three files individually, so they are attached as
       # separate assets rather than a zip. The release is drafted, not
       # published: the tag only prepares it.
@@ -31,5 +58,6 @@ jobs:
         run: |
           gh release create "$TAG" \
             --title "$TAG" \
+            --notes-file RELEASE_NOTES.md \
             --draft \
             main.js manifest.json styles.css

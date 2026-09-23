@@ -20,9 +20,10 @@ export function buildPodcastSeekProcessor(app: App): MarkdownPostProcessor {
 			const seconds = parseFloat(match[1]);
 			if (!Number.isFinite(seconds)) return;
 
-			const span = link.doc.createElement("span");
-			span.className = "tubezen-seek-link";
-			span.textContent = link.textContent ?? "";
+			const span = link.doc.createEl("span", {
+				cls: "tubezen-seek-link",
+				text: link.textContent ?? "",
+			});
 			link.replaceWith(span);
 
 			span.addEventListener("click", (ev) => {

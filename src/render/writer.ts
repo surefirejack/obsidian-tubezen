@@ -92,7 +92,7 @@ function uniquePath(app: App, folder: string, basename: string): string {
 
 function sanitizePathSegment(s: string): string {
 	const cleaned = (s ?? "")
-		.replace(/[\\/:*?"<>|#^\[\]]/g, " ")
+		.replace(/[\\/:*?"<>|#^[\]]/g, " ")
 		.replace(/\s+/g, " ")
 		.trim();
 	return cleaned.slice(0, 200) || "Untitled";
