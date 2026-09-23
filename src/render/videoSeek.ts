@@ -24,7 +24,7 @@ export function buildVideoSeekProcessor(_app: App): MarkdownPostProcessor {
 			const seconds = parseInt(match[1], 10);
 			if (!Number.isFinite(seconds)) return;
 
-			const span = link.doc.createEl("span", {
+			const span = createSpan({
 				cls: "tubezen-seek-link",
 				text: link.textContent ?? "",
 			});

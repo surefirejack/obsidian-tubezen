@@ -45,15 +45,18 @@ export function registerCommands(plugin: TubeZenPlugin): void {
 }
 
 /**
- * Obsidian types frontmatter as `any`, so read it through one accessor that
- * hands back `unknown` values for the caller to narrow.
+ * Frontmatter values are `any` through Obsidian's index signature, so hand
+ * them back as `unknown` for the caller to narrow.
  */
-function frontmatterOf(
+function frontmatterValue(
 	plugin: TubeZenPlugin,
 	file: TFile,
-): Record<string, unknown> {
-	return (plugin.app.metadataCache.getFileCache(file)?.frontmatter ??
-		{}) as Record<string, unknown>;
+	key: string,
+): unknown {
+	const frontmatter = plugin.app.metadataCache.getFileCache(file)?.frontmatter;
+	if (!frontmatter) return undefined;
+	const value: unknown = frontmatter[key];
+	return value;
 }
 
 function activeTubezenContext(
@@ -61,7 +64,7 @@ function activeTubezenContext(
 ): TubezenContext | null {
 	const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
 	if (!view?.file) return null;
-	const id = frontmatterOf(plugin, view.file).tubezen_id;
+	const id = frontmatterValue(plugin, view.file, "tubezen_id");
 	if (typeof id !== "string" || !id) return null;
 	return { tubezenId: id, file: view.file };
 }
@@ -69,10 +72,9 @@ function activeTubezenContext(
 function activeYoutubeUrl(plugin: TubeZenPlugin): string | null {
 	const view = plugin.app.workspace.getActiveViewOfType(MarkdownView);
 	if (!view?.file) return null;
-	const fm = frontmatterOf(plugin, view.file);
-	const url = fm.youtube_url;
+	const url = frontmatterValue(plugin, view.file, "youtube_url");
 	if (typeof url === "string" && url) return url;
-	const videoId = fm.youtube_video_id;
+	const videoId = frontmatterValue(plugin, view.file, "youtube_video_id");
 	if (typeof videoId === "string" && videoId) {
 		return `https://www.youtube.com/watch?v=${videoId}`;
 	}
@@ -91,7 +93,7 @@ async function reimportActive(
 	const client = new TubeZenClient(settings.baseUrl, settings.apiToken);
 	try {
 		const dto = await client.getExport(ctx.tubezenId);
-		const existing = frontmatterOf(plugin, ctx.file).imported_at;
+		const existing = frontmatterValue(plugin, ctx.file, "imported_at");
 		const importedAt =
 			typeof existing === "string" && existing
 				? existing

@@ -189,10 +189,8 @@ function isFatalError(err: unknown): boolean {
 function buildTubezenIndex(app: App): Set<string> {
 	const ids = new Set<string>();
 	for (const file of app.vault.getMarkdownFiles()) {
-		const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter as
-			| Record<string, unknown>
-			| undefined;
-		const id = frontmatter?.tubezen_id;
+		const frontmatter = app.metadataCache.getFileCache(file)?.frontmatter;
+		const id: unknown = frontmatter?.tubezen_id;
 		if (typeof id === "string") ids.add(id);
 	}
 	return ids;

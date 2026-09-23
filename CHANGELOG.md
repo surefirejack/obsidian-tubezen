@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.3
+
+- Dropped the word "Obsidian" from the manifest description; the plugin
+  directory treats it as redundant.
+- Seek links are built with the `createSpan` helper.
+- Removed two redundant type assertions around frontmatter reads.
+
 ## 1.0.2
 
 - Republishes 1.0.1. That release was created by hand and shipped without its
